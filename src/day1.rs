@@ -2,9 +2,9 @@ use std::cmp::Ordering;
 
 use aoc_runner_derive::aoc;
 
-#[aoc(day1, part1, Bytes)]
-pub fn part1(input: &[u8]) -> i64 {
-    let (mut list1, mut list2) = parse_input(input);
+#[aoc(day1, part1)]
+pub fn part1(input: &str) -> i64 {
+    let (mut list1, mut list2) = parse_input(input.as_bytes());
     list1.sort_unstable();
     list2.sort_unstable();
     list1
@@ -14,9 +14,9 @@ pub fn part1(input: &[u8]) -> i64 {
         .sum()
 }
 
-#[aoc(day1, part2, Bytes)]
-pub fn part2(input: &[u8]) -> i64 {
-    let (mut list1, mut list2) = parse_input(input);
+#[aoc(day1, part2)]
+pub fn part2(input: &str) -> i64 {
+    let (mut list1, mut list2) = parse_input(input.as_bytes());
     list1.sort_unstable();
     list2.sort_unstable();
 
