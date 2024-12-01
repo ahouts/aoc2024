@@ -66,38 +66,34 @@ pub fn part2(input: &str) -> i64 {
 }
 
 fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
-    let size = input.iter().copied().filter(|b| *b == b'\n').count();
+    let size = input.len() / 14 + 1;
     let mut list1 = Vec::<i64>::with_capacity(size);
     let mut list2 = Vec::<i64>::with_capacity(size);
 
-    let mut offset = 0;
     loop {
         if input.is_empty() {
             break;
         }
+        let l = atoi_simd::parse(&input[..5]).unwrap();
+        let r = atoi_simd::parse(&input[8..13]).unwrap();
 
-        while input[offset] != b' ' {
-            offset += 1;
-        }
-        let l = atoi_simd::parse(&input[..offset]).unwrap();
-        while input[offset] == b' ' {
-            offset += 1;
-        }
-        input = &input[offset..];
-        offset = 0;
-        while offset < input.len() && input[offset] != b'\n' {
-            offset += 1;
-        }
-        let r = atoi_simd::parse(&input[..offset]).unwrap();
         list1.push(l);
         list2.push(r);
 
-        if input.len() == offset {
+        if input.len() < 14 {
             break;
         }
-        input = &input[(offset + 1)..];
-        offset = 0;
+        input = &input[14..];
     }
 
     (list1, list2)
 }
+
+// Advent of code 2024
+// Day 1 - Part 1: 2285373
+// 	generator: 110ns,
+// 	runner: 35.14µs
+
+// Day 1 - Part 2: 21142653
+// 	generator: 40ns,
+// 	runner: 26.309µs
