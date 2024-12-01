@@ -10,7 +10,14 @@ bench = false
 lto = true
 codegen-units = 1
 
+[[bench]]
+name = "day1"
+harness = false
+
 [dependencies]
 aoc-runner = "0.3"
 aoc-runner-derive = "0.3"
 atoi_simd = "0.15"
+
+[dev-dependencies]
+criterion = { version = "*", features = ["html_reports"] }
