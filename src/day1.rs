@@ -64,7 +64,7 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
     let mut list2 = Vec::<i64>::with_capacity(size);
 
     loop {
-        if input.is_empty() {
+        if input.len() < 12 {
             break;
         }
         let l = parse_5_digit_base_10(input[..5].try_into().unwrap());
@@ -82,6 +82,7 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
     (list1, list2)
 }
 
+#[inline(always)]
 fn parse_5_digit_base_10(input: [u8; 5]) -> i64 {
     let mut n: i64 = 0;
     for i in input {
