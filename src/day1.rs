@@ -17,11 +17,8 @@ pub fn part1(input: &str) -> i64 {
 #[aoc(day1, part2)]
 pub fn part2(input: &str) -> i64 {
     let (mut list1, mut list2) = parse_input(input.as_bytes());
-    list1.sort_unstable();
-    list2.sort_unstable();
-
-    list1.reverse();
-    list2.reverse();
+    list1.sort_unstable_by(|a, b| a.cmp(b).reverse());
+    list2.sort_unstable_by(|a, b| a.cmp(b).reverse());
 
     let mut n;
     let mut prev_score = 0;
