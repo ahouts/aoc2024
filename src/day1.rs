@@ -84,7 +84,7 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
 
 fn parse_5_digit_base_10(input: [u8; 5]) -> i64 {
     let mut n: i64 = 0;
-    for i in input.iter().rev() {
+    for i in input.iter() {
         n = n * 10 + (i - b'0') as i64;
     }
     n
