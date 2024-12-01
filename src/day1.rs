@@ -88,12 +88,3 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
 
     (list1, list2)
 }
-
-// Advent of code 2024
-// Day 1 - Part 1: 2285373
-// 	generator: 110ns,
-// 	runner: 35.14µs
-
-// Day 1 - Part 2: 21142653
-// 	generator: 40ns,
-// 	runner: 26.309µs
