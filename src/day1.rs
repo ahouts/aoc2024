@@ -74,12 +74,8 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
         if input.is_empty() {
             break;
         }
-        let l = unsafe { std::str::from_utf8_unchecked(&input[..5]) }
-            .parse()
-            .unwrap();
-        let r = unsafe { std::str::from_utf8_unchecked(&input[8..13]) }
-            .parse()
-            .unwrap();
+        let l = parse_5_digit_base_10(input[..5].try_into().unwrap());
+        let r = parse_5_digit_base_10(input[8..13].try_into().unwrap());
 
         list1.push(l);
         list2.push(r);
@@ -91,4 +87,12 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
     }
 
     (list1, list2)
+}
+
+fn parse_5_digit_base_10(input: [u8; 5]) -> i64 {
+    let mut n: i64 = 0;
+    for i in input.iter().rev() {
+        n = n * 10 + (i - b'0') as i64;
+    }
+    n
 }
