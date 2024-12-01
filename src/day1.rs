@@ -72,6 +72,10 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
 
     let mut offset = 0;
     loop {
+        if input.is_empty() {
+            break;
+        }
+
         while input[offset] != b' ' {
             offset += 1;
         }
