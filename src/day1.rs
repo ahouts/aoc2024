@@ -9,7 +9,7 @@ pub fn part1(input: &str) -> i64 {
     list2.sort_unstable();
     list1
         .into_iter()
-        .zip(list2.into_iter())
+        .zip(list2)
         .map(|(l, r)| (l - r).abs())
         .sum()
 }
@@ -20,17 +20,11 @@ pub fn part2(input: &str) -> i64 {
     list1.sort_unstable_by(|a, b| a.cmp(b).reverse());
     list2.sort_unstable_by(|a, b| a.cmp(b).reverse());
 
-    let mut n;
     let mut prev_score = 0;
     let mut prev_value = -1;
     let mut score = 0;
 
-    loop {
-        n = match list1.pop() {
-            Some(l) => l,
-            None => break score,
-        };
-
+    while let Some(n) = list1.pop() {
         if prev_value == n {
             score += prev_score;
             continue;
@@ -60,6 +54,8 @@ pub fn part2(input: &str) -> i64 {
         prev_score = n * prev_count;
         score += prev_score;
     }
+
+    score
 }
 
 fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
