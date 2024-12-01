@@ -2,16 +2,9 @@ use std::cmp::Ordering;
 
 use aoc_runner_derive::aoc;
 
-#[aoc(day1, part1)]
-pub fn part1(input: &str) -> i64 {
-    let size = input.lines().count();
-    let mut list1 = Vec::<i64>::with_capacity(size);
-    let mut list2 = Vec::<i64>::with_capacity(size);
-    for line in input.lines() {
-        let (l, r) = line.split_once(' ').unwrap();
-        list1.push(l.trim().parse().unwrap());
-        list2.push(r.trim().parse().unwrap());
-    }
+#[aoc(day1, part1, Bytes)]
+pub fn part1(input: &[u8]) -> i64 {
+    let (mut list1, mut list2) = parse_input(input);
     list1.sort_unstable();
     list2.sort_unstable();
     list1
@@ -21,16 +14,9 @@ pub fn part1(input: &str) -> i64 {
         .sum()
 }
 
-#[aoc(day1, part2)]
-pub fn part2(input: &str) -> i64 {
-    let size = input.lines().count();
-    let mut list1 = Vec::<i64>::with_capacity(size);
-    let mut list2 = Vec::<i64>::with_capacity(size);
-    for line in input.lines() {
-        let (l, r) = line.split_once(' ').unwrap();
-        list1.push(l.trim().parse().unwrap());
-        list2.push(r.trim().parse().unwrap());
-    }
+#[aoc(day1, part2, Bytes)]
+pub fn part2(input: &[u8]) -> i64 {
+    let (mut list1, mut list2) = parse_input(input);
     list1.sort_unstable();
     list2.sort_unstable();
 
@@ -77,4 +63,37 @@ pub fn part2(input: &str) -> i64 {
         prev_score = n * prev_count;
         score += prev_score;
     }
+}
+
+fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
+    let size = input.iter().copied().filter(|b| *b == b'\n').count();
+    let mut list1 = Vec::<i64>::with_capacity(size);
+    let mut list2 = Vec::<i64>::with_capacity(size);
+
+    let mut offset = 0;
+    loop {
+        while input[offset] != b' ' {
+            offset += 1;
+        }
+        let l = atoi_simd::parse(&input[..offset]).unwrap();
+        while input[offset] == b' ' {
+            offset += 1;
+        }
+        input = &input[offset..];
+        offset = 0;
+        while offset < input.len() && input[offset] != b'\n' {
+            offset += 1;
+        }
+        let r = atoi_simd::parse(&input[..offset]).unwrap();
+        list1.push(l);
+        list2.push(r);
+
+        if input.len() == offset {
+            break;
+        }
+        input = &input[(offset + 1)..];
+        offset = 0;
+    }
+
+    (list1, list2)
 }
