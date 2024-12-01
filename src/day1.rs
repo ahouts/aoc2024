@@ -74,8 +74,12 @@ fn parse_input(mut input: &[u8]) -> (Vec<i64>, Vec<i64>) {
         if input.is_empty() {
             break;
         }
-        let l = atoi_simd::parse(&input[..5]).unwrap();
-        let r = atoi_simd::parse(&input[8..13]).unwrap();
+        let l = unsafe { std::str::from_utf8_unchecked(&input[..5]) }
+            .parse()
+            .unwrap();
+        let r = unsafe { std::str::from_utf8_unchecked(&input[8..13]) }
+            .parse()
+            .unwrap();
 
         list1.push(l);
         list2.push(r);

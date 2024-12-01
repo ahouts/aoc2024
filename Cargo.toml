@@ -17,7 +17,6 @@ harness = false
 [dependencies]
 aoc-runner = "0.3"
 aoc-runner-derive = "0.3"
-atoi_simd = "0.15"
 
 [dev-dependencies]
 criterion = { version = "*", features = ["html_reports"] }
