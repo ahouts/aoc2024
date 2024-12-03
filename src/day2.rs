@@ -35,11 +35,14 @@ pub fn part2(input: &str) -> u64 {
     let mut all_masks = Vec::with_capacity(1024 * 1024);
 
     let data_shifted = signed_bytes_to_u64x4(&orig_data[1..]);
-    let data = signed_bytes_to_u64x4(&orig_data[..(orig_data.len() - 1)]);
+    let data_readonly = signed_bytes_to_u64x4(&orig_data[..(orig_data.len() - 1)]);
     let mask_carry_over = u64x4::splat(0x00FFFFFF_FFFFFFFF);
 
+    let mut data = Vec::with_capacity(data_readonly.len());
+
     for i in 0..8 {
-        let mut data = data.clone();
+        data.clear();
+        data.extend_from_slice(&data_readonly);
 
         let mut line_num = 0;
         for (old, new) in data.iter_mut().zip(data_shifted.iter()) {
@@ -56,16 +59,13 @@ pub fn part2(input: &str) -> u64 {
             line_num += 4;
         }
 
-        let mut new_data = u64x4_to_signed_bytes(&data).to_owned();
-        new_data.push(0);
+        let new_data = u64x4_to_signed_bytes_with_trailing_zero(&mut data);
 
         if i == 0 {
-            gen_num_safe_lines_masks(new_data.as_slice(), num_levels.as_slice(), |mask| {
-                all_masks.push(mask)
-            });
+            gen_num_safe_lines_masks(new_data, num_levels.as_slice(), |mask| all_masks.push(mask));
         } else {
             let mut j = 0;
-            gen_num_safe_lines_masks(new_data.as_slice(), num_levels.as_slice(), |mask| {
+            gen_num_safe_lines_masks(new_data, num_levels.as_slice(), |mask| {
                 all_masks[j] |= mask;
                 j += 1;
             });
@@ -95,11 +95,12 @@ fn signed_bytes_to_u64x4(bytes: &[i8]) -> Vec<u64x4> {
         .collect()
 }
 
-fn u64x4_to_signed_bytes(vec: &Vec<u64x4>) -> &[i8] {
-    let ptr = vec.as_ptr() as *const i8;
+fn u64x4_to_signed_bytes_with_trailing_zero(vec: &mut Vec<u64x4>) -> &[i8] {
     let len = vec.len() * size_of::<u64x4>();
+    vec.push(u64x4::splat(0));
+    let ptr = vec.as_ptr() as *const i8;
 
-    unsafe { std::slice::from_raw_parts(ptr, len) }
+    unsafe { std::slice::from_raw_parts(ptr, len + 1) }
 }
 
 fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], mut accept: impl FnMut(u64)) {
