@@ -45,7 +45,6 @@ pub fn part2(input: &str) -> u64 {
                     continue;
                 }
                 chunk.copy_within((i + 1).., i);
-                chunk[7] = 0;
                 line_num += 1;
             }
         }
