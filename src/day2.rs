@@ -125,8 +125,8 @@ async fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], co: 
         let is_decreasing =
             (delta_mask_to_line_bitset(delta_signs.simd_eq(negative)) & line_mask).simd_ne(zero);
 
-        let num_modes = is_increasing & is_decreasing;
-        let mode_fails = is_flat | num_modes.select(one, zero);
+        let increasing_and_decreasing = is_increasing & is_decreasing;
+        let mode_fails = is_flat | increasing_and_decreasing.select(one, zero);
 
         let unsigned_delta = delta.saturating_abs();
         let over_threshold = unsigned_delta.simd_ge(max_threshold);
