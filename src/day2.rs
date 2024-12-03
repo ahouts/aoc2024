@@ -36,7 +36,6 @@ pub fn part2(input: &str) -> u64 {
 
     let data_shifted = signed_bytes_to_u64x4(&orig_data[1..]);
     let data_readonly = signed_bytes_to_u64x4(&orig_data[..(orig_data.len() - 1)]);
-    let mask_carry_over = u64x4::splat(0x00FFFFFF_FFFFFFFF);
 
     let mut data = Vec::with_capacity(data_readonly.len());
 
@@ -55,7 +54,7 @@ pub fn part2(input: &str) -> u64 {
                 get_line_mask(line_num + 3),
             ]);
 
-            *old = ((*old & !mask) | (new & mask)) & mask_carry_over;
+            *old = (*old & !mask) | (new & mask);
             line_num += 4;
         }
 
