@@ -138,14 +138,7 @@ async fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], co: 
                 .to_bitmask(),
         )
         .await;
-
-        // result += ((lines_over_threshold | mode_fails) & line_mask)
-        //     .simd_eq(zero)
-        //     .to_bitmask()
-        //     .count_ones() as u64;
     }
-
-    // result
 }
 
 fn delta_mask_to_line_bitset(delta_mask: Mask<i8, 64>) -> u8x8 {
