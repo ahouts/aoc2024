@@ -6,22 +6,15 @@ use std::simd::{
 };
 
 use aoc_runner_derive::aoc;
-use genawaiter::stack::{let_gen_using, Co};
 
 #[aoc(day2, part1)]
 pub fn part1(input: &str) -> u64 {
     let (data, num_levels) = parse_input(input);
 
-    let_gen_using!(masks, |co| gen_num_safe_lines_masks(
-        data.as_slice(),
-        num_levels.as_slice(),
-        co
-    ));
-
     let mut result = 0;
-    for mask in masks {
-        result += mask.count_ones() as u64;
-    }
+    gen_num_safe_lines_masks(data.as_slice(), num_levels.as_slice(), |mask| {
+        result += mask.count_ones() as u64
+    });
 
     result
 }
@@ -57,22 +50,16 @@ pub fn part2(input: &str) -> u64 {
             }
         }
 
-        let_gen_using!(masks, |co| gen_num_safe_lines_masks(
-            data.as_slice(),
-            num_levels.as_slice(),
-            co
-        ));
-
         if i == 0 {
-            for mask in masks {
-                all_masks.push(mask);
-            }
+            gen_num_safe_lines_masks(data.as_slice(), num_levels.as_slice(), |mask| {
+                all_masks.push(mask)
+            });
         } else {
             let mut j = 0;
-            for mask in masks {
+            gen_num_safe_lines_masks(data.as_slice(), num_levels.as_slice(), |mask| {
                 all_masks[j] |= mask;
                 j += 1;
-            }
+            });
         }
     }
 
@@ -84,7 +71,7 @@ pub fn part2(input: &str) -> u64 {
     result
 }
 
-async fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], co: Co<'a, u64>) {
+fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], mut accept: impl FnMut(u64)) {
     let earlier = &data[..(data.len() - 1)];
     let later = &data[1..];
 
@@ -132,12 +119,11 @@ async fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], co: 
         let over_threshold = unsigned_delta.simd_ge(max_threshold);
         let lines_over_threshold = delta_mask_to_line_bitset(over_threshold);
 
-        co.yield_(
+        accept(
             ((lines_over_threshold | mode_fails) & line_mask)
                 .simd_eq(zero)
                 .to_bitmask(),
-        )
-        .await;
+        );
     }
 }
 
