@@ -60,6 +60,7 @@ dependencies = [
  "aoc-runner-derive",
  "array-init",
  "criterion",
+ "regex",
 ]
 
 [[package]]

@@ -14,6 +14,10 @@ harness = false
 name = "day2"
 harness = false
 
+[[bench]]
+name = "day3"
+harness = false
+
 [profile.release]
 lto = true
 codegen-units = 1
@@ -24,6 +28,7 @@ panic = "abort"
 aoc-runner = "0.3"
 aoc-runner-derive = "0.3"
 array-init = "2"
+regex = "1"
 
 [dev-dependencies]
 criterion = { version = "*", features = ["html_reports"] }
