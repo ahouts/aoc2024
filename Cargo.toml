@@ -23,6 +23,7 @@ panic = "abort"
 [dependencies]
 aoc-runner = "0.3"
 aoc-runner-derive = "0.3"
+genawaiter = "0.99"
 
 [dev-dependencies]
 criterion = { version = "*", features = ["html_reports"] }

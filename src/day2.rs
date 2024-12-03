@@ -1,20 +1,92 @@
 use std::simd::{
     cmp::{SimdPartialEq, SimdPartialOrd},
     i8x64,
-    num::SimdInt as _,
+    num::{SimdInt as _, SimdUint},
     u8x8, Mask,
 };
 
 use aoc_runner_derive::aoc;
+use genawaiter::stack::{let_gen_using, Co};
 
 #[aoc(day2, part1)]
 pub fn part1(input: &str) -> u64 {
     let (data, num_levels) = parse_input(input);
 
+    let_gen_using!(masks, |co| gen_num_safe_lines_masks(
+        data.as_slice(),
+        num_levels.as_slice(),
+        co
+    ));
+
+    let mut result = 0;
+    for mask in masks {
+        result += mask.count_ones() as u64;
+    }
+
+    result
+}
+
+#[aoc(day2, part2)]
+pub fn part2(input: &str) -> u64 {
+    let (data, mut num_levels) = parse_input(input);
+
+    let one = u8x8::splat(1);
+    let chunks = data.len() / size_of::<i8x64>();
+    for c in 0..chunks {
+        let l = c * size_of::<u8x8>();
+        let range = l..(l + size_of::<u8x8>());
+        let levels = u8x8::from_slice(&num_levels[range.clone()]);
+        num_levels[range].copy_from_slice(&levels.saturating_sub(one).to_array()[..]);
+    }
+
+    let mut all_masks = Vec::with_capacity(1024 * 1024);
+
+    for i in 0..8 {
+        let mut data = data.clone();
+
+        if i != 7 {
+            let mut line_num = 0;
+            for chunk in data.array_chunks_mut::<8>() {
+                if i as u8 >= num_levels[line_num] {
+                    line_num += 1;
+                    continue;
+                }
+                chunk.copy_within((i + 1).., i);
+                chunk[7] = 0;
+                line_num += 1;
+            }
+        }
+
+        let_gen_using!(masks, |co| gen_num_safe_lines_masks(
+            data.as_slice(),
+            num_levels.as_slice(),
+            co
+        ));
+
+        if i == 0 {
+            for mask in masks {
+                all_masks.push(mask);
+            }
+        } else {
+            let mut j = 0;
+            for mask in masks {
+                all_masks[j] |= mask;
+                j += 1;
+            }
+        }
+    }
+
+    let mut result = 0;
+    for mask in all_masks {
+        result += mask.count_ones() as u64;
+    }
+
+    result
+}
+
+async fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], co: Co<'a, u64>) {
     let earlier = &data[..(data.len() - 1)];
     let later = &data[1..];
-
-    let mut result: u64 = 0;
 
     let chunks = later.len() / size_of::<i8x64>();
 
@@ -60,18 +132,20 @@ pub fn part1(input: &str) -> u64 {
         let over_threshold = unsigned_delta.simd_ge(max_threshold);
         let lines_over_threshold = delta_mask_to_line_bitset(over_threshold);
 
-        result += ((lines_over_threshold | mode_fails) & line_mask)
-            .simd_eq(zero)
-            .to_bitmask()
-            .count_ones() as u64;
+        co.yield_(
+            ((lines_over_threshold | mode_fails) & line_mask)
+                .simd_eq(zero)
+                .to_bitmask(),
+        )
+        .await;
+
+        // result += ((lines_over_threshold | mode_fails) & line_mask)
+        //     .simd_eq(zero)
+        //     .to_bitmask()
+        //     .count_ones() as u64;
     }
 
-    result
-}
-
-#[aoc(day2, part2)]
-pub fn part2(input: &str) -> u64 {
-    0
+    // result
 }
 
 fn delta_mask_to_line_bitset(delta_mask: Mask<i8, 64>) -> u8x8 {

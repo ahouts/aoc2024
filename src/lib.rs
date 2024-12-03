@@ -1,4 +1,5 @@
 #![feature(portable_simd)]
+#![feature(array_chunks)]
 
 use aoc_runner_derive::aoc_lib;
 
