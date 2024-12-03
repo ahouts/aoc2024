@@ -153,8 +153,8 @@ fn parse_input(input: &str) -> (Vec<i8>, Vec<u8>) {
 
     let mut levels = 0;
     loop {
-        match input.first() {
-            f @ (Some(b'\n') | None) => {
+        match (input.get(0), input.get(1)) {
+            (f @ Some(b'\n'), _) | (f @ None, _) => {
                 num_levels.push(levels);
                 levels = 0;
                 while (data.len() % size_of::<u8x8>()) != 0 {
@@ -166,21 +166,18 @@ fn parse_input(input: &str) -> (Vec<i8>, Vec<u8>) {
                     break;
                 }
             }
-            Some(b' ') => {
+            (Some(b' '), _) => {
                 input = &input[1..];
             }
-            Some(f) => {
-                input = &input[1..];
+            (Some(f), None | Some(b'\n') | Some(b' ')) => {
+                data.push((f - b'0') as i8);
                 levels += 1;
-                match input.first() {
-                    Some(b' ') | Some(b'\n') | None => {
-                        data.push((f - b'0') as i8);
-                    }
-                    Some(s) => {
-                        data.push((10 * (f - b'0') + (s - b'0')) as i8);
-                        input = &input[1..];
-                    }
-                }
+                input = &input[1..];
+            }
+            (Some(f), Some(s)) => {
+                data.push((10 * (f - b'0') + (s - b'0')) as i8);
+                levels += 1;
+                input = &input[2..];
             }
         }
     }
