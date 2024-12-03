@@ -1,8 +1,8 @@
 use std::simd::{
     cmp::{SimdPartialEq, SimdPartialOrd},
     i8x64,
-    num::{SimdInt as _, SimdUint},
-    u8x8, Mask,
+    num::{SimdInt as _, SimdUint as _},
+    u64x4, u8x8, Mask,
 };
 
 use aoc_runner_derive::aoc;
@@ -21,10 +21,10 @@ pub fn part1(input: &str) -> u64 {
 
 #[aoc(day2, part2)]
 pub fn part2(input: &str) -> u64 {
-    let (data, mut num_levels) = parse_input(input);
+    let (orig_data, mut num_levels) = parse_input(input);
 
     let one = u8x8::splat(1);
-    let chunks = data.len() / size_of::<i8x64>();
+    let chunks = orig_data.len() / size_of::<i8x64>();
     for c in 0..chunks {
         let l = c * size_of::<u8x8>();
         let range = l..(l + size_of::<u8x8>());
@@ -34,28 +34,38 @@ pub fn part2(input: &str) -> u64 {
 
     let mut all_masks = Vec::with_capacity(1024 * 1024);
 
+    let data_shifted = signed_bytes_to_u64x4(&orig_data[1..]);
+    let data = signed_bytes_to_u64x4(&orig_data[..(orig_data.len() - 1)]);
+    let mask_carry_over = u64x4::splat(0x00FFFFFF_FFFFFFFF);
+
     for i in 0..8 {
         let mut data = data.clone();
 
-        if i != 7 {
-            let mut line_num = 0;
-            for chunk in data.array_chunks_mut::<8>() {
-                if i as u8 >= num_levels[line_num] {
-                    line_num += 1;
-                    continue;
-                }
-                chunk.copy_within((i + 1).., i);
-                line_num += 1;
-            }
+        let mut line_num = 0;
+        for (old, new) in data.iter_mut().zip(data_shifted.iter()) {
+            let get_line_mask =
+                |n: usize| -> u64 { 0xFFFFFFFF_FFFFFFFF << (u8::min(i as u8, num_levels[n]) * 8) };
+            let mask = u64x4::from_array([
+                get_line_mask(line_num),
+                get_line_mask(line_num + 1),
+                get_line_mask(line_num + 2),
+                get_line_mask(line_num + 3),
+            ]);
+
+            *old = ((*old & !mask) | (new & mask)) & mask_carry_over;
+            line_num += 4;
         }
 
+        let mut new_data = u64x4_to_signed_bytes(&data).to_owned();
+        new_data.push(0);
+
         if i == 0 {
-            gen_num_safe_lines_masks(data.as_slice(), num_levels.as_slice(), |mask| {
+            gen_num_safe_lines_masks(new_data.as_slice(), num_levels.as_slice(), |mask| {
                 all_masks.push(mask)
             });
         } else {
             let mut j = 0;
-            gen_num_safe_lines_masks(data.as_slice(), num_levels.as_slice(), |mask| {
+            gen_num_safe_lines_masks(new_data.as_slice(), num_levels.as_slice(), |mask| {
                 all_masks[j] |= mask;
                 j += 1;
             });
@@ -68,6 +78,28 @@ pub fn part2(input: &str) -> u64 {
     }
 
     result
+}
+
+fn signed_bytes_to_u64x4(bytes: &[i8]) -> Vec<u64x4> {
+    let bytes: &[u8] =
+        unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u8, bytes.len()) };
+
+    bytes
+        .array_chunks::<32>()
+        .map(|chunk| {
+            let arr: [u64; 4] = array_init::array_init(|i| {
+                u64::from_ne_bytes(chunk[(i * 8)..((i + 1) * 8)].try_into().unwrap())
+            });
+            u64x4::from_array(arr)
+        })
+        .collect()
+}
+
+fn u64x4_to_signed_bytes(vec: &Vec<u64x4>) -> &[i8] {
+    let ptr = vec.as_ptr() as *const i8;
+    let len = vec.len() * size_of::<u64x4>();
+
+    unsafe { std::slice::from_raw_parts(ptr, len) }
 }
 
 fn gen_num_safe_lines_masks<'a>(data: &'a [i8], num_levels: &'a [u8], mut accept: impl FnMut(u64)) {
@@ -167,7 +199,7 @@ fn parse_input(input: &str) -> (Vec<i8>, Vec<u8>) {
         }
     }
 
-    while (data.len() % size_of::<i8x64>()) != 0 {
+    while (data.len() % size_of::<u64x4>()) != 0 {
         data.push(0);
     }
 
