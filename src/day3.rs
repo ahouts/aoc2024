@@ -1,6 +1,11 @@
 use aoc_runner_derive::aoc;
 use regex::bytes::Regex;
 
+use jemallocator::Jemalloc;
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 #[aoc(day3, part1)]
 pub fn part1(input: &str) -> u64 {
     let re = Regex::new(r"mul\(([0-9]+),([0-9]+)\)").unwrap();
