@@ -107,12 +107,13 @@ impl FromStr for Input {
         let mut ordering_input = &input[0..(ordering_end + 1)];
         let mut updates_input = &input[(ordering_end + 2)..];
 
-        ordering_input = simd_parse_10_to_99s_with_separators(ordering_input, |nums, _| {
-            for [before, after] in nums.as_array().array_chunks::<2>().take(10) {
-                orderings[(*before, *after)] = Ordering::Less;
-            }
-            4
-        });
+        ordering_input =
+            simd_parse_21_two_digit_numbers_with_trailers(ordering_input, |nums, _| {
+                for [before, after] in nums.as_array().array_chunks::<2>().take(10) {
+                    orderings[(*before, *after)] = Ordering::Less;
+                }
+                4
+            });
 
         for ordering in ordering_input.array_chunks::<6>() {
             let before = parse_10_to_99(ordering[0], ordering[1]);
@@ -123,25 +124,26 @@ impl FromStr for Input {
         let newline = u8x32::splat(b'\n');
         let mut pages = [0; 23];
         let mut len = 0;
-        updates_input = simd_parse_10_to_99s_with_separators(updates_input, |nums, sep| {
-            for (n, is_newline) in nums
-                .as_array()
-                .into_iter()
-                .copied()
-                .zip(sep.simd_eq(newline).to_array().into_iter())
-                .take(21)
-            {
-                pages[len] = n;
-                len += 1;
-                if is_newline {
-                    updates.push((pages, len as u8));
-                    pages = [0; 23];
-                    len = 0;
+        updates_input =
+            simd_parse_21_two_digit_numbers_with_trailers(updates_input, |nums, sep| {
+                for (n, is_newline) in nums
+                    .as_array()
+                    .into_iter()
+                    .copied()
+                    .zip(sep.simd_eq(newline).to_array().into_iter())
+                    .take(21)
+                {
+                    pages[len] = n;
+                    len += 1;
+                    if is_newline {
+                        updates.push((pages, len as u8));
+                        pages = [0; 23];
+                        len = 0;
+                    }
                 }
-            }
 
-            1
-        });
+                1
+            });
 
         let mut update_iter = updates_input.array_chunks::<3>();
         for update in &mut update_iter {
@@ -177,7 +179,7 @@ macro_rules! swizzle_x64_radix_3_with_offset {
     };
 }
 
-fn simd_parse_10_to_99s_with_separators(
+fn simd_parse_21_two_digit_numbers_with_trailers(
     mut input: &[u8],
     mut accept: impl FnMut(u8x32, u8x32) -> usize,
 ) -> &[u8] {
