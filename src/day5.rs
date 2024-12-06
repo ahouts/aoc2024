@@ -30,17 +30,23 @@ pub fn part2(input: &str) -> usize {
         .filter(|(update, len)| !is_update_valid(&update[0..(*len as usize)], &input.orderings))
         .map(|(mut update, len)| {
             let update = &mut update[0..(len as usize)];
-            update.sort_unstable_by(|a, b| input.orderings[(*a, *b)]);
+            update.sort_unstable_by(|a, b| {
+                if input.orderings[(*a, *b)] {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            });
             update[(len / 2) as usize] as usize
         })
         .sum()
 }
 
 fn is_update_valid(update: &[u8], orderings: &Orderings) -> bool {
-    update.is_sorted_by(|a, b| orderings[(*a, *b)] == Ordering::Less)
+    update.is_sorted_by(|a, b| orderings[(*a, *b)])
 }
 
-struct Orderings([Ordering; Self::SIZE]);
+struct Orderings([bool; Self::SIZE]);
 
 impl Orderings {
     const SIZE: usize = 0b1100011_1100011;
@@ -52,12 +58,12 @@ impl Orderings {
 
 impl Default for Orderings {
     fn default() -> Self {
-        Self([Ordering::Greater; Self::SIZE])
+        Self([false; Self::SIZE])
     }
 }
 
 impl Index<(u8, u8)> for Orderings {
-    type Output = Ordering;
+    type Output = bool;
 
     fn index(&self, (a, b): (u8, u8)) -> &Self::Output {
         &self.0[self.offset(a, b)]
@@ -68,6 +74,18 @@ impl IndexMut<(u8, u8)> for Orderings {
     fn index_mut(&mut self, (a, b): (u8, u8)) -> &mut Self::Output {
         &mut self.0[self.offset(a, b)]
     }
+}
+
+macro_rules! swizzle_x64_radix_3_with_offset {
+    ( $data:expr, $offset:expr ) => {
+        simd_swizzle!($data, seq!(N in 0..32 {
+            [
+                #(
+                    if N < 21 { N * 3 + $offset } else { 0 },
+                )*
+            ]
+        }))
+    };
 }
 
 struct Input {
@@ -107,30 +125,35 @@ impl FromStr for Input {
         let mut ordering_input = &input[0..(ordering_end + 1)];
         let mut updates_input = &input[(ordering_end + 2)..];
 
-        ordering_input =
-            simd_parse_21_two_digit_numbers_with_trailers(ordering_input, |nums, _| {
+        ordering_input = simd_parse_21_two_digit_numbers_with_trailers(
+            ordering_input,
+            |_| (),
+            |nums, ()| {
                 for [before, after] in nums.as_array().array_chunks::<2>().take(10) {
-                    orderings[(*before, *after)] = Ordering::Less;
+                    orderings[(*before, *after)] = true;
                 }
                 4
-            });
+            },
+        );
 
         for ordering in ordering_input.array_chunks::<6>() {
             let before = parse_10_to_99(ordering[0], ordering[1]);
             let after = parse_10_to_99(ordering[3], ordering[4]);
-            orderings[(before, after)] = Ordering::Less;
+            orderings[(before, after)] = true;
         }
 
         let newline = u8x32::splat(b'\n');
         let mut pages = [0; 23];
         let mut len = 0;
-        updates_input =
-            simd_parse_21_two_digit_numbers_with_trailers(updates_input, |nums, sep| {
+        updates_input = simd_parse_21_two_digit_numbers_with_trailers(
+            updates_input,
+            |orig| swizzle_x64_radix_3_with_offset!(orig, 2),
+            |nums, separators| {
                 for (n, is_newline) in nums
                     .as_array()
                     .into_iter()
                     .copied()
-                    .zip(sep.simd_eq(newline).to_array().into_iter())
+                    .zip(separators.simd_eq(newline).to_array().into_iter())
                     .take(21)
                 {
                     pages[len] = n;
@@ -143,7 +166,8 @@ impl FromStr for Input {
                 }
 
                 1
-            });
+            },
+        );
 
         let mut update_iter = updates_input.array_chunks::<3>();
         for update in &mut update_iter {
@@ -167,21 +191,10 @@ impl FromStr for Input {
     }
 }
 
-macro_rules! swizzle_x64_radix_3_with_offset {
-    ( $data:expr, $offset:expr ) => {
-        simd_swizzle!($data, seq!(N in 0..32 {
-            [
-                #(
-                    if N < 21 { N * 3 + $offset } else { 0 },
-                )*
-            ]
-        }))
-    };
-}
-
-fn simd_parse_21_two_digit_numbers_with_trailers(
+fn simd_parse_21_two_digit_numbers_with_trailers<S>(
     mut input: &[u8],
-    mut accept: impl FnMut(u8x32, u8x32) -> usize,
+    mut make_supplemental: impl FnMut(u8x64) -> S,
+    mut accept: impl FnMut(u8x32, S) -> usize,
 ) -> &[u8] {
     let zero_ascii = u8x64::splat(b'0');
     let ten = u8x32::splat(10);
@@ -194,9 +207,7 @@ fn simd_parse_21_two_digit_numbers_with_trailers(
         let mut nums = tens * ten;
         nums += ones;
 
-        let sep = swizzle_x64_radix_3_with_offset!(orig, 2);
-
-        let unread = accept(nums, sep);
+        let unread = accept(nums, make_supplemental(orig));
         input = &input[(64 - unread)..];
     }
     input
