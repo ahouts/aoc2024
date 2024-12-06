@@ -120,18 +120,20 @@ impl FromStr for Input {
             orderings[(before, after)] = Ordering::Less;
         }
 
+        let newline = u8x32::splat(b'\n');
         let mut pages = [0; 23];
         let mut len = 0;
         updates_input = simd_parse_10_to_99s_with_separators(updates_input, |nums, sep| {
-            for (n, s) in nums
+            for (n, is_newline) in nums
                 .as_array()
                 .into_iter()
-                .zip(sep.as_array().into_iter())
+                .copied()
+                .zip(sep.simd_eq(newline).to_array().into_iter())
                 .take(21)
             {
-                pages[len] = *n;
+                pages[len] = n;
                 len += 1;
-                if *s == b'\n' {
+                if is_newline {
                     updates.push((pages, len as u8));
                     pages = [0; 23];
                     len = 0;
