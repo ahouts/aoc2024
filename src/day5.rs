@@ -1,3 +1,4 @@
+use seq_macro::seq;
 use std::{
     cmp::Ordering,
     simd::{cmp::SimdPartialEq, simd_swizzle, u8x32, u8x64},
@@ -141,6 +142,18 @@ impl FromStr for Input {
     }
 }
 
+macro_rules! swizzle_x64_radix_3_with_offset {
+    ( $data:expr, $offset:expr ) => {
+        simd_swizzle!($data, seq!(N in 0..32 {
+            [
+                #(
+                    if N < 21 { N * 3 + $offset } else { 0 },
+                )*
+            ]
+        }))
+    };
+}
+
 fn simd_parse_10_to_99s_with_separators(
     mut input: &[u8],
     mut accept: impl FnMut(u8x32, u8x32) -> usize,
@@ -151,30 +164,12 @@ fn simd_parse_10_to_99s_with_separators(
     while let Some(chunk) = input.array_chunks::<64>().next() {
         let orig = u8x64::from_array(*chunk);
         let d = orig - zero_ascii;
-        let tens = simd_swizzle!(
-            d,
-            [
-                0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            ]
-        );
-        let ones = simd_swizzle!(
-            d,
-            [
-                1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46, 49, 52, 55, 58, 61, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
-        );
+        let tens = swizzle_x64_radix_3_with_offset!(d, 0);
+        let ones = swizzle_x64_radix_3_with_offset!(d, 1);
         let mut nums = tens * ten;
         nums += ones;
 
-        let sep = simd_swizzle!(
-            orig,
-            [
-                2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41, 44, 47, 50, 53, 56, 59, 62, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            ]
-        );
+        let sep = swizzle_x64_radix_3_with_offset!(orig, 2);
 
         let unread = accept(nums, sep);
         input = &input[(64 - unread)..];
