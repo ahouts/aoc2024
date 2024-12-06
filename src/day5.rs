@@ -1,6 +1,7 @@
 use seq_macro::seq;
 use std::{
     cmp::Ordering,
+    ops::{Index, IndexMut},
     simd::{cmp::SimdPartialEq, simd_swizzle, u8x32, u8x64},
     str::FromStr,
 };
@@ -29,28 +30,48 @@ pub fn part2(input: &str) -> usize {
         .filter(|(update, len)| !is_update_valid(&update[0..(*len as usize)], &input.orderings))
         .map(|(mut update, len)| {
             let update = &mut update[0..(len as usize)];
-            update.sort_unstable_by(|a, b| {
-                if sort(&input.orderings)(a, b) {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
-            });
+            update.sort_unstable_by(|a, b| input.orderings[(*a, *b)]);
             update[(len / 2) as usize] as usize
         })
         .sum()
 }
 
-fn is_update_valid(update: &[u8], orderings: &[u128; 100]) -> bool {
-    update.is_sorted_by(sort(&orderings))
+fn is_update_valid(update: &[u8], orderings: &Orderings) -> bool {
+    update.is_sorted_by(|a, b| orderings[(*a, *b)] == Ordering::Less)
 }
 
-fn sort(orderings: &[u128; 100]) -> impl Fn(&u8, &u8) -> bool + '_ {
-    |a, b| (orderings[*a as usize] & (1 << *b)) != 0
+struct Orderings([Ordering; Self::SIZE]);
+
+impl Orderings {
+    const SIZE: usize = 0b1100011_1100011;
+
+    fn offset(&self, a: u8, b: u8) -> usize {
+        ((a as usize) << 7) | (b as usize)
+    }
+}
+
+impl Default for Orderings {
+    fn default() -> Self {
+        Self([Ordering::Equal; Self::SIZE])
+    }
+}
+
+impl Index<(u8, u8)> for Orderings {
+    type Output = Ordering;
+
+    fn index(&self, (a, b): (u8, u8)) -> &Self::Output {
+        &self.0[self.offset(a, b)]
+    }
+}
+
+impl IndexMut<(u8, u8)> for Orderings {
+    fn index_mut(&mut self, (a, b): (u8, u8)) -> &mut Self::Output {
+        &mut self.0[self.offset(a, b)]
+    }
 }
 
 struct Input {
-    orderings: [u128; 100],
+    orderings: Orderings,
     updates: Vec<([u8; 23], u8)>,
 }
 
@@ -59,7 +80,7 @@ impl FromStr for Input {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let input = input.as_bytes();
-        let mut orderings: [u128; 100] = [0; 100];
+        let mut orderings = Orderings::default();
         let mut updates = Vec::with_capacity(256);
 
         let newline = u8x64::splat(b'\n');
@@ -88,7 +109,8 @@ impl FromStr for Input {
 
         ordering_input = simd_parse_10_to_99s_with_separators(ordering_input, |nums, _| {
             for [before, after] in nums.as_array().array_chunks::<2>().take(10) {
-                orderings[*before as usize] |= 1 << *after;
+                orderings[(*before, *after)] = Ordering::Less;
+                orderings[(*after, *before)] = Ordering::Greater;
             }
             4
         });
@@ -96,7 +118,8 @@ impl FromStr for Input {
         for ordering in ordering_input.array_chunks::<6>() {
             let before = parse_10_to_99(ordering[0], ordering[1]);
             let after = parse_10_to_99(ordering[3], ordering[4]);
-            orderings[before as usize] |= 1 << after;
+            orderings[(after, before)] = Ordering::Greater;
+            orderings[(before, after)] = Ordering::Less;
         }
 
         let mut pages = [0; 23];
