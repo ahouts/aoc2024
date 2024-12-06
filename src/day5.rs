@@ -52,7 +52,7 @@ impl Orderings {
 
 impl Default for Orderings {
     fn default() -> Self {
-        Self([Ordering::Equal; Self::SIZE])
+        Self([Ordering::Greater; Self::SIZE])
     }
 }
 
@@ -110,7 +110,6 @@ impl FromStr for Input {
         ordering_input = simd_parse_10_to_99s_with_separators(ordering_input, |nums, _| {
             for [before, after] in nums.as_array().array_chunks::<2>().take(10) {
                 orderings[(*before, *after)] = Ordering::Less;
-                orderings[(*after, *before)] = Ordering::Greater;
             }
             4
         });
@@ -118,7 +117,6 @@ impl FromStr for Input {
         for ordering in ordering_input.array_chunks::<6>() {
             let before = parse_10_to_99(ordering[0], ordering[1]);
             let after = parse_10_to_99(ordering[3], ordering[4]);
-            orderings[(after, before)] = Ordering::Greater;
             orderings[(before, after)] = Ordering::Less;
         }
 
