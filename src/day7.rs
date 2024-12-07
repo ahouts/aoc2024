@@ -77,6 +77,8 @@ fn partn<NO: NextOp>(input: &str) -> u64 {
         let mut ops = [Op::Add; MAX_LINE_LENGTH];
         let mut ops = Ops(&mut ops[2..nums_count]);
 
+        const POWS: [u64; 5] = [1, 10, 100, 1_000, 10_000];
+
         let mut cache = [0; MAX_LINE_LENGTH];
         let mut valid = 0;
 
@@ -87,7 +89,7 @@ fn partn<NO: NextOp>(input: &str) -> u64 {
                     Op::Add => cache[i] = prev + vars[i],
                     Op::Mul => cache[i] = prev * vars[i],
                     Op::Cons => {
-                        cache[i] = prev * 10u64.pow(digits[i] as u32);
+                        cache[i] = prev * POWS[digits[i] as usize];
                         cache[i] += vars[i];
                     }
                 }
