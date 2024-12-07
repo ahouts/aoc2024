@@ -19,6 +19,7 @@ array-init = "2"
 regex = "1"
 jemallocator = "0.5"
 seq-macro = "0.3"
+nalgebra = "0.33"
 
 [dev-dependencies]
 criterion = { version = "*", features = ["html_reports"] }
@@ -41,4 +42,8 @@ harness = false
 
 [[bench]]
 name = "day5"
+harness = false
+
+[[bench]]
+name = "day6"
 harness = false
